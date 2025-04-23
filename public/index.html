@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>M Music Player</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <h1>🎧 M Music Player</h1>
+
+    <div class="search-box">
+      <input type="text" id="search" placeholder="Search songs or artists..." />
+    </div>
+
+    <div class="upload-form">
+      <form id="uploadForm">
+        <input type="file" name="song" accept="audio/*" required />
+        <br />
+        <button type="submit">Upload Song</button>
+      </form>
+    </div>
+
+    <div class="songs-container" id="songs"></div>
+
+    <audio id="player" controls></audio>
+
+    <footer>Built with ❤️ using Node.js</footer>
+
+    <script>
+      const songsEl = document.getElementById("songs");
+      const player = document.getElementById("player");
+      const search = document.getElementById("search");
+
+      let songs = [];
+
+      function renderSongs(filter = "") {
+        songsEl.innerHTML = "";
+        const filtered = songs.filter((song) =>
+          (song.title + song.artist)
+            .toLowerCase()
+            .includes(filter.toLowerCase())
+        );
+
+        filtered.forEach((song) => {
+          const card = document.createElement("div");
+          card.className = "song-card";
+          card.onclick = () => {
+            player.src = `/stream/${song.file}`;
+            player.play();
+          };
+
+          const img = document.createElement("img");
+          img.className = "song-art";
+          img.src = `/art/${song.file}`;
+          img.onerror = () => {
+            img.src = "/default-art.png";
+          };
+
+          const title = document.createElement("div");
+          title.className = "song-title";
+          title.textContent = song.title;
+
+          const artist = document.createElement("div");
+          artist.className = "song-artist";
+          artist.textContent = song.artist;
+
+          card.appendChild(img);
+          card.appendChild(title);
+          card.appendChild(artist);
+          songsEl.appendChild(card);
+        });
+      }
+
+      fetch("/api/songs")
+        .then((res) => res.json())
+        .then((data) => {
+          songs = data;
+          renderSongs();
+        });
+
+      search.addEventListener("input", (e) => {
+        renderSongs(e.target.value);
+      });
+
+      let currentIndex = 0;
+
+      function playSong(index) {
+        const song = songs[index];
+        if (song) {
+          player.src = `/stream/${song.file}`;
+          player.play();
+          currentIndex = index;
+        }
+      }
+
+      // Playlist behavior: next song on end
+      player.addEventListener("ended", () => {
+        if (currentIndex < songs.length - 1) {
+          playSong(currentIndex + 1);
+        }
+      });
+
+      // Upload handler
+      document.getElementById("uploadForm").addEventListener("submit", (e) => {
+        e.preventDefault();
+        const form = e.target;
+        const formData = new FormData(form);
+
+        fetch("/upload", {
+          method: "POST",
+          body: formData,
+        })
+          .then((res) => {
+            if (!res.ok) throw new Error("Upload failed");
+            return res.json();
+          })
+          .then((data) => {
+            alert("Upload successful!");
+            songs.push(data);
+            renderSongs(search.value);
+          })
+          .catch((err) => {
+            alert("Error uploading song.");
+            console.error(err);
+          });
+      });
+    </script>
+  </body>
+</html>
