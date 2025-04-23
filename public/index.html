@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!-- <!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -8,6 +8,7 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="style.css" />
+    <script src="https://cdn.jsdelivr.net/npm/appwrite@13.0.0"></script>
   </head>
   <body>
     <h1>🎧 M Music Player</h1>
@@ -128,6 +129,128 @@
             console.error(err);
           });
       });
+    </script>
+  </body>
+</html> -->
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>M Music Player</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <h1>🎧 M Music Player</h1>
+
+    <div class="search-box">
+      <input type="text" id="search" placeholder="Search songs or artists..." />
+    </div>
+
+    <div class="upload-form">
+      <form id="uploadForm">
+        <input type="file" name="song" accept="audio/*" required />
+        <button type="submit">Upload Song</button>
+      </form>
+    </div>
+
+    <div class="songs-container" id="songs"></div>
+
+    <audio id="player" controls></audio>
+
+    <footer>Built with ❤️ using Node.js + Appwrite</footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/appwrite@13.0.0"></script>
+    <script type="module">
+      import { uploadTrack } from "./upload.js";
+
+      const songsEl = document.getElementById("songs");
+      const player = document.getElementById("player");
+      const search = document.getElementById("search");
+      const form = document.getElementById("uploadForm");
+
+      let songs = [];
+
+      function renderSongs(filter = "") {
+        songsEl.innerHTML = "";
+        const filtered = songs.filter((song) =>
+          (song.title + song.artist)
+            .toLowerCase()
+            .includes(filter.toLowerCase())
+        );
+
+        filtered.forEach((song, index) => {
+          const card = document.createElement("div");
+          card.className = "song-card";
+          card.onclick = () => playSong(index);
+
+          const img = document.createElement("img");
+          img.className = "song-art";
+          img.src = song.art || "/default-art.png";
+
+          const title = document.createElement("div");
+          title.className = "song-title";
+          title.textContent = song.title;
+
+          const artist = document.createElement("div");
+          artist.className = "song-artist";
+          artist.textContent = song.artist;
+
+          card.appendChild(img);
+          card.appendChild(title);
+          card.appendChild(artist);
+          songsEl.appendChild(card);
+        });
+      }
+
+      let currentIndex = 0;
+
+      function playSong(index) {
+        const song = songs[index];
+        if (song) {
+          player.src = song.url || `/stream/${song.file}`;
+          player.play();
+          currentIndex = index;
+        }
+      }
+
+      player.addEventListener("ended", () => {
+        if (currentIndex < songs.length - 1) {
+          playSong(currentIndex + 1);
+        }
+      });
+
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const file = form.song.files[0];
+        if (!file) return alert("Please select a file");
+
+        try {
+          const song = await uploadTrack(file);
+          alert("Upload successful!");
+          songs.push(song);
+          renderSongs(search.value);
+        } catch (err) {
+          console.error(err);
+          alert("Upload failed");
+        }
+      });
+
+      search.addEventListener("input", (e) => {
+        renderSongs(e.target.value);
+      });
+
+      // Load songs from your server (optional if you mix local + Appwrite)
+      fetch("/api/songs")
+        .then((res) => res.json())
+        .then((data) => {
+          songs = data;
+          renderSongs();
+        });
     </script>
   </body>
 </html>
