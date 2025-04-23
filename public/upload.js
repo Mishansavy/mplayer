@@ -1,16 +1,23 @@
-import { Client, Storage, ID } from "appwrite";
-
-const client = new Client()
-  .setEndpoint("https://cloud.appwrite.io/v1")
+const client = new Appwrite.Client()
+  .setEndpoint("https://syd.cloud.appwrite.io/v1")
   .setProject("6809247f002275dbd4db");
 
-const storage = new Storage(client);
+const storage = new Appwrite.Storage(client);
 
 export async function uploadTrack(file) {
-  const response = await storage.createFile(
+  const uploaded = await storage.createFile(
     "680924b2000eaba808f2",
-    ID.unique(),
+    "unique()",
     file
   );
-  return storage.getFilePreview("680924b2000eaba808f2", response.$id); // streaming URL
+  const previewUrl = storage.getFilePreview(
+    "680924b2000eaba808f2",
+    uploaded.$id
+  );
+  return {
+    title: file.name,
+    artist: "Unknown",
+    file: uploaded.$id,
+    url: previewUrl,
+  };
 }
